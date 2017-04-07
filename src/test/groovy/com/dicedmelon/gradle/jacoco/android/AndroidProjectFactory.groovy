@@ -22,8 +22,8 @@ public class AndroidProjectFactory {
 
   static void configure(Project project) {
     project.android {
-      compileSdkVersion 23
-      buildToolsVersion '23.0.0'
+      compileSdkVersion 25
+      buildToolsVersion '25.0.2'
 
       defaultConfig {
         versionCode 1
