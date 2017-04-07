@@ -1,5 +1,8 @@
 # Change Log
 
+## Version 0.1.2 *(2015-11-29)*
+* Fixed a bug where tasks where created when there are already jacoco tasks with the same name
+
 ## Version 0.1.1 *(2015-11-29)*
 * Make it possible to use the plugin with Java 7 (fixes #11)
 * Provide default name patterns for classes to be excluded from report generation.

@@ -16,11 +16,14 @@ import org.gradle.testing.jacoco.tasks.JacocoReport
 import static org.gradle.api.logging.Logging.getLogger
 
 class JacocoAndroidPlugin implements Plugin<ProjectInternal> {
+  private static mPluginExtensionName = "jacocoAndroidUnitTestReport"
+  private static mJacocoTaskName = "jacocoTestReport"
+  private static mJacocoTaskGroupName = "Reporting"
 
   Logger logger = getLogger(getClass())
 
   @Override public void apply(ProjectInternal project) {
-    project.extensions.create("jacocoAndroidUnitTestReport",
+    project.extensions.create(mPluginExtensionName,
         JacocoAndroidUnitTestReportExtension,
         JacocoAndroidUnitTestReportExtension.defaultExcludesFactory())
     project.plugins.apply(JacocoPlugin)
@@ -30,7 +33,7 @@ class JacocoAndroidPlugin implements Plugin<ProjectInternal> {
     project.afterEvaluate {
       Task jacocoTestReportTask = findOrCreateJacocoTestReportTask(project.tasks)
       def variants = getVariants(project, plugin)
-      
+
       variants.all { variant ->
         JacocoReport reportTask = createReportTask(project, variant)
         jacocoTestReportTask.dependsOn reportTask
@@ -50,10 +53,10 @@ class JacocoAndroidPlugin implements Plugin<ProjectInternal> {
   }
 
   private static Task findOrCreateJacocoTestReportTask(TaskContainer tasks) {
-    Task jacocoTestReportTask = tasks.findByName("jacocoTestReport")
+    Task jacocoTestReportTask = tasks.findByName(mJacocoTaskName)
     if (!jacocoTestReportTask) {
-      jacocoTestReportTask = tasks.create("jacocoTestReport")
-      jacocoTestReportTask.group = "Reporting"
+      jacocoTestReportTask = tasks.create(mJacocoTaskName)
+      jacocoTestReportTask.group = mJacocoTaskGroupName
     }
     jacocoTestReportTask
   }
@@ -66,25 +69,25 @@ class JacocoAndroidPlugin implements Plugin<ProjectInternal> {
   private static JacocoReport createReportTask(ProjectInternal project, variant) {
     def sourceDirs = sourceDirs(variant)
     def classesDir = classesDir(variant)
-    
+
     boolean integrationTestsEnabled = project.jacocoAndroidUnitTestReport.integrationTestsEnabled
     Task integrationTestTask = getTask(project, getIntegrationTaskName(variant))
     def testTask = testTask(project.tasks, variant)
 
     def executionData = executionDataFile(testTask, integrationTestsEnabled, project)
-    JacocoReport reportTask = project.tasks.create("jacoco${testTask.name.capitalize()}Report",
-        JacocoReport)
+
+    JacocoReport reportTask =  findOrCreateJacocoReport(project, "jacoco${testTask.name.capitalize()}Report")
     if(integrationTestsEnabled){
       integrationTestTask.dependsOn testTask
       reportTask.dependsOn integrationTestTask
     }else {
       reportTask.dependsOn testTask
     }
-    reportTask.group = "Reporting"
+    reportTask.group = mJacocoTaskGroupName
     reportTask.description = "Generates Jacoco coverage reports for the ${variant.name} variant."
     reportTask.executionData = executionDataFile(testTask, integrationTestsEnabled, project)
     reportTask.sourceDirectories = project.files(sourceDirs)
-    reportTask.classDirectories = 
+    reportTask.classDirectories =
         project.fileTree(dir: classesDir, excludes: project.jacocoAndroidUnitTestReport.excludes)
     reportTask.reports {
       csv.enabled project.jacocoAndroidUnitTestReport.csv.enabled
@@ -92,6 +95,10 @@ class JacocoAndroidPlugin implements Plugin<ProjectInternal> {
       xml.enabled project.jacocoAndroidUnitTestReport.xml.enabled
     }
     reportTask
+  }
+
+  private static JacocoReport findOrCreateJacocoReport(ProjectInternal project, String currentTaskName) {
+    project.tasks.findByName(currentTaskName) ?: project.tasks.create(currentTaskName, JacocoReport)
   }
 
   static def sourceDirs(variant) {
@@ -107,8 +114,8 @@ class JacocoAndroidPlugin implements Plugin<ProjectInternal> {
   }
 
   static String getIntegrationTaskName(def variant) {
-      String name = "create${variant.name.capitalize()}CoverageReport"
-      name
+    String name = "create${variant.name.capitalize()}CoverageReport"
+    name
   }
 
   static def testTask(TaskCollection<Task> tasks, variant) {
